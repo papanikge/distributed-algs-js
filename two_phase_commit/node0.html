@@ -1,0 +1,81 @@
+<html lang="en"><head>
+
+<title>Leader - Two phase commit - PeerJS</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Language" content="en-us">
+<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+
+<script type="text/javascript">
+
+var peer;
+var counter  = 1;   /* Connection counter */
+var decision = 1;   /* This is my 'transmitted' decision. Every node has its own. Change in order to test */
+var nodes    = 4;   /* The number of the participating nodes in the commit */
+var vec = new Array();
+var connections = new Object();
+
+window.onload = function() {
+
+  vec[0]  = decision;    /* my decision. We may jump ahead if it is 0. */
+  peer    = new Peer("zero", {key: '5bk60iq1kgvcayvi', debug: 3}); 
+
+  peer.on('connection', function(conn){
+    // on received data
+    conn.on('data', function(data){
+      if (isFinite(data)) {
+        /* We got a number, which means we are in: Phase [1] */
+        addLog("received: " + data);
+        connections[counter] = conn; /* keeping the connection for later */
+        vec[counter] = data;
+        counter++;
+      }
+      if (counter >= nodes) {
+        /* Phase [2] */
+        announce(vec);
+      }
+    });
+  });
+
+  addLog("Ready [mine: " + decision + "]");
+}
+
+/* Reply back to all the other nodes when the decision has been made */
+function announce(vector) {
+  var str;
+  if (checkVector(vector)) {
+    str = "Commit successful";
+  } else {
+    str = "Commit failed";
+  }
+  for (var i = 1; i <= (nodes - 1); i++) {
+    connections[i].send(str);
+  };
+  /* ...and log */
+  addLog(str);
+}
+
+/* check a vector according to the two-phase commit algorithm
+ * The answer is 1 if and only if all elements are 1 */
+function checkVector(vec) {
+  var ret = 1;
+  for (var i in vec) {
+    if (vec[i] != 1) {
+      ret = 0;
+    }
+  }
+  return ret;
+}
+
+/* Helper method that appends text to a log container so we can see what's going on */
+function addLog(log) {
+  var div = document.getElementById("logscontainer");
+  div.innerHTML = div.innerHTML + "<br>" + log;
+}
+
+</script>
+</head>
+
+<body>
+  <div id="logscontainer" style="width:500px;"></div>
+</body>
+</html>

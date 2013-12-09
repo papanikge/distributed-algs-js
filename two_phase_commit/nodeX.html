@@ -1,0 +1,45 @@
+<html lang="en"><head>
+
+<title>Node - Two phase commit - PeerJS</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Language" content="en-us">
+<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+
+<script type="text/javascript">
+
+var peer = new Peer({key: '5bk60iq1kgvcayvi', debug: 3}); 
+// The following is the 'broadcasted' decision. [0 or 1] Change to test
+// decision = Math.floor(Math.random() * 2);
+var decision = 1;
+
+/* Need to run on site load */
+window.onload = function() {
+  /* opening connection (and keeping it open) */
+  var conn = peer.connect("zero");
+  conn.on('open', function(){
+    addLog("sending... " + decision);
+    /* send decision */
+    conn.send(decision);
+    /* reflect on the decision */
+    if (decision != 0) {
+      // wait for server response
+      conn.on('data', function(data){ addLog(data); });
+    } else {
+      addLog("Commit failed");
+    }
+  });
+}
+
+/* Helper method that appends text to a log container so we can see what's going on */
+function addLog(log) {
+  var div = document.getElementById("logscontainer");
+  div.innerHTML = div.innerHTML + "<br>" + log;
+}
+
+</script>
+</head>
+
+<body>
+  <div id="logscontainer" style="width:500px;"></div>
+</body>
+</html>
