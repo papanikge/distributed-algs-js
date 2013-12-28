@@ -1,4 +1,5 @@
-<html lang="en"><head>
+<html lang="en">
+<head>
 
 <title>Leader - Two phase commit - PeerJS</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -8,29 +9,29 @@
 <script type="text/javascript">
 
 var peer;
-var counter  = 1;   /* Connection counter */
+var counter  = 1;   /* Counter */
 var decision = 1;   /* This is my 'transmitted' decision. Every node has its own. Change in order to test */
 var nodes    = 4;   /* The number of the participating nodes in the commit */
-var vec = new Array();
-var connections = new Object();
+var vec         = new Array();  /* where we will store the replies */
+var connections = new Object(); /* general object to keep connections */
 
 window.onload = function() {
 
   vec[0]  = decision;    /* my decision. We may jump ahead if it is 0. */
   peer    = new Peer("zero", {key: '5bk60iq1kgvcayvi', debug: 3}); 
 
-  peer.on('connection', function(conn){
-    // on received data
-    conn.on('data', function(data){
+  peer.on('connection', function(conn) {
+    /* on received data */
+    conn.on('data', function(data) {
       if (isFinite(data)) {
-        /* We got a number, which means we are in: Phase [1] */
+        /* We got a number, which means we are in Phase-1 */
         addLog("received: " + data);
         connections[counter] = conn; /* keeping the connection for later */
         vec[counter] = data;
         counter++;
       }
+      /* Different if to check if we surpassed the clients to enter Phase-2 */
       if (counter >= nodes) {
-        /* Phase [2] */
         announce(vec);
       }
     });
@@ -54,8 +55,10 @@ function announce(vector) {
   addLog(str);
 }
 
-/* check a vector according to the two-phase commit algorithm
- * The answer is 1 if and only if all elements are 1 */
+/* 
+ * Check a vector according to the two-phase commit algorithm
+ * The answer is 1 if and only if all elements are 1
+ */
 function checkVector(vec) {
   var ret = 1;
   for (var i in vec) {
