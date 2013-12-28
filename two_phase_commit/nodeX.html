@@ -5,6 +5,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Language" content="en-us">
 <script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+<script src="../common.js"></script>
 
 <script type="text/javascript">
 
@@ -31,12 +32,6 @@ window.onload = function() {
       addLog("Commit failed");
     }
   });
-}
-
-/* Helper method that appends text to a log container so we can see what's going on */
-function addLog(log) {
-  var div = document.getElementById("logscontainer");
-  div.innerHTML = div.innerHTML + "<br>" + log;
 }
 
 </script>
