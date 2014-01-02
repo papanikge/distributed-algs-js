@@ -11,3 +11,11 @@ function addLog(log) {
   var div = document.getElementById("logscontainer");
   div.innerHTML = div.innerHTML + "<br>" + log;
 }
+
+/*
+ * Returns a random integer between min and max
+ * Yields a non-uniform distribution!
+ */
+function getRandomInt (min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
