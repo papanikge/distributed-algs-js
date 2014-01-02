@@ -1,7 +1,11 @@
 /*
  * George 'papanikge' Papanikolaou 2013
- * Common functions and code that all(?) the algorithms use
+ * Common functions and code that all(?) algorithms use
  */
+
+function max(a, b) {
+  return (a > b) ? a:b;
+}
 
 /*
  * Helper method that appends text to a log container for logging purposes.
