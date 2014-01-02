@@ -1,7 +1,7 @@
 <html lang="en">
 <head>
 
-<title>Leader - Two phase commit - PeerJS</title>
+<title>Leader - Two phase commit</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Language" content="en-us">
 <script src="http://cdn.peerjs.com/0.3/peer.js"></script>
@@ -42,7 +42,7 @@ window.onload = function() {
 }
 
 /* Reply back to all the other nodes when the decision has been made */
-function announce(vector) {
+var announce = function announceF(vector) {
   var str;
   if (checkVector(vector)) {
     str = "Commit successful";
@@ -60,7 +60,7 @@ function announce(vector) {
  * Check a vector according to the two-phase commit algorithm
  * The answer is 1 if and only if all elements are 1
  */
-function checkVector(vec) {
+var checkVector = function checkVectorF(vec) {
   var ret = 1;
   for (var i in vec) {
     if (vec[i] != 1) {
