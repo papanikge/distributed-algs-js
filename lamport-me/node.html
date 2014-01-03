@@ -27,7 +27,7 @@ window.onload = function() {
       if (isFinite(data)) {
         /* we got our unique id */
         my_id = data;
-        updateClock(null);
+        updateClock();
       } else {
         /* we got an object */
         if (data.msg == "req") {
@@ -35,8 +35,6 @@ window.onload = function() {
         } else if (data.msg == "release") {
           release(data.id);
         }
-        /* TODO: more(?) */
-
         /* ...finaly */
         updateClock(data.lc);
       }
@@ -47,26 +45,28 @@ window.onload = function() {
       queue.push({id: my_id, lc: clock});
       /* and sending it over to all the rest */
       conn.send({msg: "req", id: my_id, lc: clock});
-      /* TODO: handle response (see acq) */
+      updateClock();
     }
   });
 }
 
 /*
  * Updates the global Lamport logical clock based on a new one
+ * Optional argument: a new clock
  */
 var updateClock = function updateClockF(new_clock) {
-  if (new_clock) {
-    clock = max(clock, new_clock) + 1;
-  } else {
+  if (typeof new_clock === "undefined") {
     clock += 1;
+  } else {
+    clock = max(clock, new_clock) + 1;
   }
-  /* since clock 'ticks' periodically, we add queue checking here */
+  /* since clock 'ticks' often, we add queue checking here. */
   check();
 }
 
 /*
  * Finds the request with the smallest logical clock in the global priority queue
+ * I know I can use Math.max and Array.indexOf but I think this one is faster
  * Caution: Requires a non-empty queue !!
  */
 var findNext = function findNextF() {
@@ -92,13 +92,11 @@ var check = function checkF() {
 
   if (!resource_busy) {
     var next = findNext();
+    resource_busy = true;
     if (queue[next] == my_id) {
-      /* I have the resource!!! Just use it for a sec or so */
-      resource_busy = true;
-      setTimeout(release(my_id), 1000);
+      /* The resource is MINE !!! Just use it for a bit... */
+      setTimeout(release(my_id), 2000);
       conn.send({msg: "release", id: my_id, lc: clock});
-    } else {
-      resource_busy = true;
     }
   }
   return 0;
