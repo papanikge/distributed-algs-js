@@ -32,8 +32,8 @@ window.onload = function() {
         /* we got an object */
         if (data.msg == "req") {
           queue.push({id: data.id, lc: data.lc});
-        } else if (data.msg == "free") {
-          free(data.id);
+        } else if (data.msg == "release") {
+          release(data.id);
         }
         /* TODO: more(?) */
 
@@ -95,8 +95,8 @@ var check = function checkF() {
     if (queue[next] == my_id) {
       /* I have the resource!!! Just use it for a sec or so */
       resource_busy = true;
-      setTimeout(free(my_id), 1000);
-      conn.send({msg: "free", id: my_id, lc: clock});
+      setTimeout(release(my_id), 1000);
+      conn.send({msg: "release", id: my_id, lc: clock});
     } else {
       resource_busy = true;
     }
@@ -107,7 +107,7 @@ var check = function checkF() {
 /*
  * Removes the request from the global priotity queue
  */
-var free = function freeF(id) {
+var release = function releaseF(id) {
   queue.splice(id, 1);
   resource_busy = false;
   /* more... (?) */

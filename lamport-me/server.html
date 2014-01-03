@@ -37,7 +37,7 @@ window.onload = function() {
         count++;
       } else if (message.hasOwnProperty("msg")) {
         /* Normal server operation */
-        if (data.msg == "req" || data.msg == "free") {
+        if (data.msg == "req" || data.msg == "release") {
           /* forwarding request to all the 'other' processes */
           i = count;
           while (i--) {
