@@ -37,7 +37,7 @@ window.onload = function() {
         count++;
       } else if (message.hasOwnProperty("msg")) {
         /* Normal server operation */
-        if (data.msg == "req") {
+        if (data.msg == "req" || data.msg == "free") {
           /* forwarding request to all the 'other' processes */
           i = count;
           while (i--) {
@@ -45,7 +45,9 @@ window.onload = function() {
               conns[i].send(data);
             }
           }
-        } // TODO: else on other types of messages
+        } else {
+          alert("Error: Unknown type of message");
+        }
       } else {
         alert("Error: Can't handle received message");
       }
