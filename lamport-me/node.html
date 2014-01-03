@@ -12,7 +12,7 @@
 var id;
 var clock = 0;             /* Lamport logical clock */
 var queue = new Array();   /* incoming requests */
-var have_resource = false; /* am I in the critical section? */
+var resource_busy = false; /* is it available?  */
 
 /* Need to run on site load */
 window.onload = function() {
@@ -31,9 +31,10 @@ window.onload = function() {
         /* we got an object */
         if (data.msg == "req") {
           queue.push({id: data.id, lc: data.lc});
-        } else if (data.msg == "acq") {
-          /* TODO: resource is mine */
+        } else if (data.msg == "free") {
+          free(data.id);
         }
+        /* TODO: more(?) */
 
         /* ...finaly */
         updateClock(data.lc);
@@ -59,6 +60,8 @@ var updateClock = function updateClockF(new_clock) {
   } else {
     clock += 1;
   }
+  /* since clock 'ticks' periodically, we add queue checking here */
+  check();
 }
 
 /*
@@ -75,6 +78,34 @@ var findNext = function findNextF() {
     }
   }
   return m_index;
+}
+
+/*
+ * Checks for pending request and serve if possible
+ */
+var check = function checkF() {
+  if (queue.length == 0) {
+    return -1;
+  }
+
+  var next = findNext();
+  if (queue[next] == id) {
+    /* I have the resource!!! Just use it for a sec or so */
+    setTimeout(free(id), 1000);
+    conn.send({msg: "free", id: id, lc: clock});
+  } else {
+    resource_busy = true;
+  }
+  return 0;
+}
+
+/*
+ * Removes the request from the global priotity queue
+ */
+var free = function freeF(id) {
+  queue.splice(id, 1);
+  resource_busy = false;
+  /* more... (?) */
 }
 
 </script>
