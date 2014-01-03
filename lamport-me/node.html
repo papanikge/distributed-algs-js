@@ -1,0 +1,86 @@
+<html lang="en">
+<head>
+
+<title>Node -- Lamport Mutual Exclusion algorithm</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Language" content="en-us">
+<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+<script src="../common.js"></script>
+
+<script type="text/javascript">
+
+var id;
+var clock = 0;             /* Lamport logical clock */
+var queue = new Array();   /* incoming requests */
+var have_resource = false; /* am I in the critical section? */
+
+/* Need to run on site load */
+window.onload = function() {
+  /* connect with the server */
+  var peer = new Peer({key: '5bk60iq1kgvcayvi', debug: 3});
+  var conn = peer.connect("server");
+  conn.on('open', function() {
+    /* wave to server */
+    conn.send("hi server");
+    conn.on('data', function(data) {
+      if (isFinite(data)) {
+        /* we got our unique id */
+        id = data;
+        updateClock(null); /* do we need that? */
+      } else {
+        /* we got an object */
+        if (data.msg == "req") {
+          queue.push({id: data.id, lc: data.lc});
+        } else if (data.msg == "acq") {
+          /* TODO: resource is mine */
+        }
+
+        /* ...finaly */
+        updateClock(data.lc);
+      }
+    });
+    /* ok, after handling inputs, we decide whether or not we want access */
+    if (getRandomInt(0,1)) {
+      /* adding to my own queue */
+      queue.push({id: id, lc: clock});
+      /* and sending it over to all the rest */
+      conn.send({msg: "req", id: id, lc: clock});
+      /* TODO: handle response (see acq) */
+    }
+  });
+}
+
+/*
+ * Updates the global Lamport logical clock based on a new one
+ */
+var updateClock = function updateClockF(new_clock) {
+  if (new_clock) {
+    clock = max(clock, new_clock) + 1;
+  } else {
+    clock += 1;
+  }
+}
+
+/*
+ * Finds the request with the smallest logical clock in the global priority queue
+ */
+var findNext = function findNextF {
+  /* queue is an array of requests in the form of: { id: <ID>, lc: <CLOCK> } */
+  var m_index = 0;
+
+  var m = queue.length;
+  for (var j = 1; j < m; j += 1) {
+    if (queue[j].lc > queue[m_index].lc) {
+      m_index = j;
+    }
+  }
+  return m_index;
+}
+
+</script>
+</head>
+
+<body>
+  <div id="logscontainer" style="width:500px;"></div>
+</body>
+</html>

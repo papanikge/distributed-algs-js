@@ -1,0 +1,60 @@
+<html lang="en">
+<head>
+
+<title>Resource and Topology Server -- Lamport Mutual Exclusion algorithm</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Language" content="en-us">
+<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+<script src="../common.js"></script>
+
+<script type="text/javascript">
+
+var i;                     /* generic counter */
+var peer;                  /* peer group      */
+var count = 0;             /* peers counter   */
+var conns = new Object();  /* generic object to save connections */
+
+var holds_resource = null; /* process currently holding the resource */
+
+/*
+ * Assumptions:
+ *   - The network should be asynchronous.
+ *   - Our channels are consistent, reliable and FIFO.
+ */
+
+/* We will just be the mediator on the network. Start on site load */
+window.onload = function() {
+  /* open a group (Debug mode on) */
+  peer = new Peer("server", {key: '5bk60iq1kgvcayvi', debug: 3});
+  peer.on('connection', function(conn) {
+    /* on received data */
+    conn.on('data', function(data) {
+      if (data == "hi server") {
+        /* We got a greeting message, which means we have one more peer */
+        addLog("got a peer");
+        conns[count] = conn;  /* keeping the connection for later */
+        conn.send(count);     /* reply with the counter for the unique id */
+        count++;
+      } else {
+        /* Normal server operation */
+        if (data.msg = "req") {
+          /* forwarding request to all the nodes */
+          i = count;
+          while (i--) {
+            conns[i].send(data);
+          }
+        }
+      }
+    });
+  });
+
+  addLog("Ready.");
+}
+
+</script>
+</head>
+
+<body>
+  <div id="logscontainer" style="width:500px;"></div>
+</body>
+</html>
