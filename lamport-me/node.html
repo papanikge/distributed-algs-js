@@ -9,7 +9,7 @@
 
 <script type="text/javascript">
 
-var id;
+var my_id;
 var clock = 0;             /* Lamport logical clock */
 var queue = new Array();   /* incoming requests */
 var resource_busy = false; /* is it available?  */
@@ -22,11 +22,12 @@ window.onload = function() {
   conn.on('open', function() {
     /* wave to server */
     conn.send("hi server");
+    /* set up message handlers */
     conn.on('data', function(data) {
       if (isFinite(data)) {
         /* we got our unique id */
-        id = data;
-        updateClock(null); /* do we need that? */
+        my_id = data;
+        updateClock(null);
       } else {
         /* we got an object */
         if (data.msg == "req") {
@@ -43,9 +44,9 @@ window.onload = function() {
     /* ok, after handling inputs, we decide whether or not we want access */
     if (getRandomInt(0,1)) {
       /* adding to my own queue */
-      queue.push({id: id, lc: clock});
+      queue.push({id: my_id, lc: clock});
       /* and sending it over to all the rest */
-      conn.send({msg: "req", id: id, lc: clock});
+      conn.send({msg: "req", id: my_id, lc: clock});
       /* TODO: handle response (see acq) */
     }
   });
@@ -66,6 +67,7 @@ var updateClock = function updateClockF(new_clock) {
 
 /*
  * Finds the request with the smallest logical clock in the global priority queue
+ * Caution: Requires a non-empty queue !!
  */
 var findNext = function findNextF() {
   /* queue is an array of requests in the form of: { id: <ID>, lc: <CLOCK> } */
@@ -88,13 +90,16 @@ var check = function checkF() {
     return -1;
   }
 
-  var next = findNext();
-  if (queue[next] == id) {
-    /* I have the resource!!! Just use it for a sec or so */
-    setTimeout(free(id), 1000);
-    conn.send({msg: "free", id: id, lc: clock});
-  } else {
-    resource_busy = true;
+  if (!resource_busy) {
+    var next = findNext();
+    if (queue[next] == my_id) {
+      /* I have the resource!!! Just use it for a sec or so */
+      resource_busy = true;
+      setTimeout(free(my_id), 1000);
+      conn.send({msg: "free", id: my_id, lc: clock});
+    } else {
+      resource_busy = true;
+    }
   }
   return 0;
 }
