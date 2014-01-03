@@ -27,11 +27,13 @@ window.onload = function() {
       if (isFinite(data)) {
         /* we got our unique id */
         my_id = data;
+        addLog("I'm in the network. [id: " + my_id + "]");
         updateClock();
       } else {
         /* we got an object */
         if (data.msg == "req") {
           queue.push({id: data.id, lc: data.lc});
+          addLog(data.id + " got the resource. Damn it.");
         } else if (data.msg == "release") {
           release(data.id);
         }
@@ -41,6 +43,7 @@ window.onload = function() {
     });
     /* ok, after handling inputs, we decide whether or not we want access */
     if (getRandomInt(0,1)) {
+      addLog("I want access.");
       /* adding to my own queue */
       queue.push({id: my_id, lc: clock});
       /* and sending it over to all the rest */
@@ -95,8 +98,10 @@ var check = function checkF() {
     resource_busy = true;
     if (queue[next] == my_id) {
       /* The resource is MINE !!! Just use it for a bit... */
+      addLog("Resource is mine.");
       setTimeout(release(my_id), 2000);
       conn.send({msg: "release", id: my_id, lc: clock});
+      addLog("Letting it go.");
     }
   }
   return 0;
@@ -116,6 +121,7 @@ var release = function releaseF(id) {
        */
       queue.splice(j, 1);
       resource_busy = false;
+      addLog(id + " had the resource. It's up for grabs now.");
       break;
     }
   }
