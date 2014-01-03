@@ -42,15 +42,22 @@ window.onload = function() {
       }
     });
     /* ok, after handling inputs, we decide whether or not we want access */
-    if (getRandomInt(0,1)) {
-      addLog("I want access.");
-      /* adding to my own queue */
-      queue.push({id: my_id, lc: clock});
-      /* and sending it over to all the rest */
-      conn.send({msg: "req", id: my_id, lc: clock});
-      updateClock();
-    }
+    setTimeout(request(conn), 2000);
   });
+}
+
+/*
+ * Requests access to the shared resource randomly
+ */
+var request = function requestF(serv) {
+  if (getRandomInt(0,1)) {
+    addLog("I want access.");
+    /* adding to my own queue */
+    queue.push({id: my_id, lc: clock});
+    /* and sending it over to all the rest */
+    serv.send({msg: "req", id: my_id, lc: clock});
+    updateClock();
+  }
 }
 
 /*
