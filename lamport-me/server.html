@@ -31,19 +31,23 @@ window.onload = function() {
     conn.on('data', function(data) {
       if (data == "hi server") {
         /* We got a greeting message, which means we have one more peer */
-        addLog("got a peer");
+        addLog("Got another peer. [id: " + count + "]");
         conns[count] = conn;  /* keeping the connection for later */
         conn.send(count);     /* reply with the counter for the unique id */
         count++;
-      } else {
+      } else if (message.hasOwnProperty("msg")) {
         /* Normal server operation */
-        if (data.msg = "req") {
-          /* forwarding request to all the nodes */
+        if (data.msg == "req") {
+          /* forwarding request to all the 'other' processes */
           i = count;
           while (i--) {
-            conns[i].send(data);
+            if (i != data.id) {
+              conns[i].send(data);
+            }
           }
-        }
+        } // TODO: else on other types of messages
+      } else {
+        alert("Error: Can't handle received message");
       }
     });
   });
