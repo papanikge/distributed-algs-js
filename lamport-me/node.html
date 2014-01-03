@@ -106,9 +106,19 @@ var check = function checkF() {
  * Removes the request from the global priotity queue
  */
 var release = function releaseF(id) {
-  queue.splice(id, 1);
-  resource_busy = false;
-  /* more... (?) */
+  var m = queue.length;
+  for (var j = 0; j < m; j += 1) {
+    if (queue[j].id == id) {
+      /*
+       * In our implementation a process can't ask for the resource twice,
+       * so we don't need to check for the logical clock here.
+       * But implementing that would be easy.
+       */
+      queue.splice(j, 1);
+      resource_busy = false;
+      break;
+    }
+  }
 }
 
 </script>
