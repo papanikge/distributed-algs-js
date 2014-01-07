@@ -13,6 +13,7 @@ var my_id;
 var clock = 0;             /* Lamport logical clock */
 var queue = new Array();   /* incoming requests */
 var resource_busy = false; /* is it available?  */
+var connection;            /* we need it globally for the button, etc */
 
 /* Need to run on site load */
 window.onload = function() {
@@ -36,28 +37,28 @@ window.onload = function() {
           addLog(data.id + " got the resource. Damn it.");
         } else if (data.msg == "release") {
           release(data.id);
+        } else {
+          alert("Node: Wrong message type");
         }
         /* ...finaly */
         updateClock(data.lc);
       }
     });
-    /* ok, after handling inputs, we decide whether or not we want access */
-    setTimeout(request(conn), 2000);
+    /* We have the button for handling the decision of whether or not we want access */
+    connection = conn;
   });
 }
 
 /*
- * Requests access to the shared resource randomly
+ * Requests access to the shared resource
  */
-var request = function requestF(serv) {
-  if (getRandomInt(0,1)) {
-    addLog("I want access.");
-    /* adding to my own queue */
-    queue.push({id: my_id, lc: clock});
-    /* and sending it over to all the rest */
-    serv.send({msg: "req", id: my_id, lc: clock});
-    updateClock();
-  }
+var request = function requestF() {
+  addLog("I want access.");
+  /* adding to my own queue */
+  queue.push({id: my_id, lc: clock});
+  /* and sending it over to all the rest */
+  connection.send({msg: "req", id: my_id, lc: clock});
+  updateClock();
 }
 
 /*
@@ -141,6 +142,7 @@ var release = function releaseF(id) {
 </head>
 
 <body>
+  <input type="button" value="request" onclick="request();"/>
   <div id="logscontainer" style="width:500px;"></div>
 </body>
 </html>
