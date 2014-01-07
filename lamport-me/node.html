@@ -110,9 +110,11 @@ var check = function checkF() {
        * We don't need to announce it, since all nodes already know who deserves it
        */
       addLog("Resource is mine.");
-      setTimeout(release(my_id), 2000);
-      conn.send({msg: "release", id: my_id, lc: clock});
-      addLog("Letting it go.");
+      setTimeout(function() {
+        addLog("Letting it go.");
+        connection.send({msg: "release", id: my_id, lc: clock});
+        release(my_id);
+      }, 2000);
     }
   }
   return 0;
