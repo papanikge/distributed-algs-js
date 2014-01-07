@@ -103,8 +103,11 @@ var check = function checkF() {
   if (!resource_busy) {
     var next = findNext();
     resource_busy = true;
-    if (queue[next] == my_id) {
-      /* The resource is MINE !!! Just use it for a bit... */
+    if (queue[next].id == my_id) {
+      /*
+       * The resource is MINE !!! Just use it for a bit...
+       * We don't need to announce it, since all nodes already know who deserves it
+       */
       addLog("Resource is mine.");
       setTimeout(release(my_id), 2000);
       conn.send({msg: "release", id: my_id, lc: clock});

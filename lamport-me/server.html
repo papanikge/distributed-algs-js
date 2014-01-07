@@ -35,7 +35,7 @@ window.onload = function() {
         conns[count] = conn;  /* keeping the connection for later */
         conn.send(count);     /* reply with the counter for the unique id */
         count++;
-      } else if (message.hasOwnProperty("msg")) {
+      } else if (data.hasOwnProperty("msg")) {
         /* Normal server operation */
         if (data.msg == "req" || data.msg == "release") {
           /* forwarding request to all the 'other' processes */
