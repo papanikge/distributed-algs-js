@@ -1,0 +1,259 @@
+<html>
+<head>
+<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+<script src="raphael.js"></script>
+
+<script type="text/javascript">
+
+//Global variables initialization
+//Variable that stores the connection to the p2p network.
+var peer;
+
+//The available client ids
+var connectionIds = [1,2,3,4,5,6,7,8];
+
+//The available client ids shuffled
+var shuffledIds;
+
+//Counts the peers connected to the server.
+var connectedNodesCount = 0;
+
+//SVG object to create the elements for the visualization.
+var paper;
+
+//Object that stores a mapping between nodeId -> Connection for exchanging messages with a certain client.
+var connections = new Object();
+
+//Object that stores a mapping between nodeId -> Message sent by that node.
+var messages = new Object();
+
+//the current round of the simulation progress.
+var round = 0;
+
+//a counter that every round will count how many empty (NULL) messages it received
+var countEmptyMessages = 0;
+
+//SVG variables for the visualization
+//Object that stores a mapping between nodeId -> SVG Circle for updating the circle colours when a new node connects.
+var idToCircle = new Object();
+
+//Array that stores the lines that appear in the visualization when exchanging messages
+var messageLines = new Array();
+
+//Array that stores the exchanged message texts that appear at each round in the visualization
+var messageTexts = new Array();
+
+//The center of the SVG element (total size of 500x500 pixels)
+var centerX=250;
+var centerY=250;
+
+//main function that starts when the web page is fully loaded.
+window.onload = function() {
+
+  //init node ids - shuffle them and create the shuffledId array.
+  shuffledIds = shuffle(connectionIds);
+  //create an svg element of 500x500 pixels to visualize the nodes (clients)
+  paper = new Raphael(document.getElementById("renderer"), 500, 500);
+  //construct the visualization of the network
+  constructVisualization();
+  //create the peer to communicate with other nodes with id = "server_id"
+  // peer = new Peer('server_id', {key: '098s9nzya2a9k9'}); 
+  peer = new Peer('server_id', {key: '5bk60iq1kgvcayvi'}); 
+
+  //initialize peer handlers
+  peer.on('connection', function(conn) {
+    //when peer receives data from a connection
+    conn.on('data', function(data){
+      if (data == "hi!") {
+        //if the received data is "hi!" then it is a new client that wants to connect to our network
+        //assign an Id from the shuffledIds list to the new connection
+        connections[shuffledIds[connectedNodesCount]]=conn;
+        //send the id back to the client
+        conn.send(shuffledIds[connectedNodesCount]);
+        //update the SVG with the new node
+        addNode(shuffledIds[connectedNodesCount]);
+        //update the counter
+        connectedNodesCount++;
+
+      } else {
+        //if the message is not "hi!" then it is a message sent by the node durring the processing of a round
+        var receivedData = JSON.parse(data);
+        //internalId is an id sent by the client automatically for the server and we don't want to forward it to the receiver node.
+        //so read the id and then remove it from the object.
+        var peerId = receivedData.internalId;
+        delete receivedData.internalId;
+        //add the message to the clients messages object
+        messages[peerId] = receivedData;
+        if (getObjectLength(receivedData) == 0) {
+          //if the message doesn't contain anything then it is empty message
+          countEmptyMessages++;
+        }
+        addLog("round " + round + " : Receiving message : " + data + ", " + getObjectLength(messages));
+        if (countEmptyMessages == 8) {
+          //if we received 8 empty messages then nobody sent anything and the process has ended.
+          addLog("Process Ended");
+          return;
+        }
+        if (getObjectLength(messages) == 8) {
+          //if we received message from all 8 nodes (empty and non empty messages)
+          setTimeout(function() {
+            forwardMessages();//forward all messages the their receipients
+            messages = new Object();//empty the message object
+            round++;//increase the round
+            countEmptyMessages = 0;//zero the empty messages counter to be ready for the next round.
+          }, 2000);//we use settimeout to add a 2 seconds delay durring every round for better visualization of the progress.
+        }
+      }
+    });
+  });
+
+  alert("done");
+
+}
+
+/**
+ *This method constructs the initial state of the representation of the Network
+ **/
+function constructVisualization() {
+  var count = 0;
+  var radius = 200;
+  paper.circle(centerX, centerY, radius);
+  for (var id in shuffledIds) {
+    var degrees = 540-count*45;
+    var radians = degrees * (Math.PI/180);
+    var posX = centerX + radius*Math.sin(radians);
+    var posY = centerY + radius*Math.cos(radians);
+    var circle = paper.circle(posX, posY, 10).attr({fill: 'white'});
+    paper.text(posX, posY - 20, "Node " + count + " - ID " + shuffledIds[id]).attr({fill: '#ff0000'});
+
+    idToCircle[shuffledIds[id]] = circle;
+
+    count++;
+  }
+}
+
+
+/**
+ * This method adds a new node to the network.
+ * id : the id of the new node that has connected.
+ **/
+function addNode(id) {
+  idToCircle[id].attr({fill:"green"})
+    addLog("Node " + connectedNodesCount + " connected");
+}
+
+/**
+ * This method draws a new line and the message between the sender and the recipient durring a round.
+ * sender : the node id of the sender.
+ * recipient : The node id of the recipient.
+ * msg : the message that was sent.
+ **/
+function addLine(sender, recipient, msg) {
+  var sC = idToCircle[sender];
+  var rC = idToCircle[recipient];
+  var p1X = sC.attr('cx');
+  var p1Y = sC.attr('cy');
+  var p2X = rC.attr('cx');
+  var p2Y = rC.attr('cy');
+  var line = paper.path( "M" + p1X + "," + p1Y + " L" + p2X + "," + p2Y + "" );
+  line.attr({fill:"red"})
+    messageLines[messageLines.length] = line;
+  var txt = paper.text((p1X+p2X)/2, (p1Y+p2Y)/2, msg).attr({fill: '#ff0000'});
+  messageTexts[messageTexts.length] = txt;
+}
+
+/**
+ * This method constructs and sends a message to a connection (a client-node)
+ * conn : the connection to send the message (the recipient of the message)
+ * act : an indicator for what the message is about.
+ * rnd : the round that the message is being sent.
+ * msg : the message body to send.
+ **/
+function sendMessage(conn, act, rnd, msg) {
+  var toSend = JSON.stringify({action : act, round: rnd, message : msg});
+  conn.send(toSend);
+}
+
+/**
+ * This method is called when "begin" button is pressed and tells to all clients to start the process.
+ **/
+function begin() {
+  for (var index in shuffledIds) {
+    var msgObject = new Object();
+    sendMessage(connections[shuffledIds[index]], 'begin', round, msgObject);
+    //.send()
+  }
+  round++;
+}
+
+/**
+ * Helper method that returns the number of attributes inside an object
+ **/
+function getObjectLength(obj) {
+  var count =0;
+  for (var key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Method that forwards all messages inside the "messages" Object
+ * to their recipients
+ **/
+function forwardMessages() {
+  //remove SVG lines and texts from previous round
+  for (var index in messageLines) {
+    messageLines[index].remove();
+    messageTexts[index].remove();
+  }
+  //reinitiaze arrays
+  messageLines = [];
+  messageTexts = [];
+  //iterate messages
+  for (var index in shuffledIds) {
+    //collect all messages for this node
+    var nextIndex = parseInt(index) + 1;
+    var previousIndex = parseInt(index) - 1;
+
+    if (previousIndex == -1) {
+      previousIndex = 7;
+    }
+
+    if (getObjectLength(messages[shuffledIds[previousIndex]]) > 0) {
+      //if the message to send is not empty then add a line and a text in the SVG
+      addLine(shuffledIds[previousIndex], shuffledIds[index], JSON.stringify(messages[shuffledIds[previousIndex]]));
+    }
+
+    var msgObject = new Object();
+    msgObject.m1 = messages[shuffledIds[previousIndex]];
+    sendMessage(connections[shuffledIds[index]], "pr", round, msgObject);
+  }
+
+}
+
+/**
+ * Append a log in the logs container.
+ **/
+function addLog(log) {
+  var div = document.getElementById("logspanel");
+  div.innerHTML = log + "<br>" + div.innerHTML  ;
+}
+
+//+ Jonas Raoni Soares Silva
+//@ http://jsfromhell.com/array/shuffle [v1.0]
+function shuffle(o){ //v1.0
+  for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+  return o;
+};
+
+</script>
+</head>
+<body>
+<div id="renderer"></div>
+  <input type="button" value="begin" onclick="begin();"/>
+  <div id="logspanel" style="width:500px;"></div>
+</body>
+</html>

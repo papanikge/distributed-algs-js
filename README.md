@@ -16,6 +16,13 @@ in a consistent (for all processes) way.
 
 TODO: add more specific info
 
+### LCR leader election algorithm for k leaders
+This is a variation of the LeLann-Chang-Roberts algorithm for leader election in a
+synchronous, reliable network, that elects k leaders instead of one.  
+The server was implemented by the CEID Distributed-Systems course professor.
+No copyright infringement intended.  
+This algorithm uses [raphael.js](http://raphaeljs.com/) to display animations.  
+
 -------
 These were written as part of the CEID Distributed Systems course in 2013  
 George 'papanikge' Papanikolaou

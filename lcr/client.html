@@ -1,0 +1,151 @@
+<html>
+<head>
+<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+
+<script type="text/javascript">
+
+//create the peer to communicate with other nodes. No id needs to be specified here.
+var peer = new Peer({key: '5bk60iq1kgvcayvi'}); 
+
+//Object that will contain the message received for process at each round.
+var receivedData;
+//Object that will be filled with data to send for the next round to the other nodes.
+var dataToSend;
+
+// the node id, assigned by the server.
+var nodeId;
+// indicator if we are the leader
+var orig_leader = false;
+// How many leaders do we need (k variable)
+// XXX: we are not checking if clients > how_many_leaders
+var how_many_leaders = 2;
+// array that indicates elected leaders
+var leaders = []; // (at the end it has to be of how_many_leaders size)
+
+//create a connection with the server
+var conn = peer.connect('server_id');
+conn.on('open', function(id){
+  //when connection has been established send keyword 'hi!' to tell server to add me in his nodes.
+  conn.send('hi!');
+});
+
+//on receive message from server handler
+conn.on('data', function(data) {
+  //empty the object dataToSend so it won't remember old attributes	
+  dataToSend = new Object();
+
+  if (isNaN(data)) {
+    //if the data is not just a simple number
+    //then it is a json string. deserialize data to javascript Object and assign it to receivedData.
+    receivedData = JSON.parse(data);
+    addLog("Processing round : " + receivedData.round + " : " + JSON.stringify(receivedData));
+    //process the round and create the message to send
+    if (receivedData.round == 0) {
+      processRound(receivedData.message, receivedData.round);
+    } else {
+      for (var index in receivedData.message) {
+        //retrieve every message received in this round
+        processRound(receivedData.message[index], receivedData.round);
+      }
+    }
+    //add in the message to send the nodeId.
+    addToMessage("internalId", nodeId);
+    //send the message
+    sendMessage();
+  } else {
+    //if data is a number, that means it is the nodeId sent by the server for me.
+    addLog("got id : " + data)
+      //else it is the id
+      nodeId = data;
+  }
+
+});
+
+alert("done");
+
+
+/**
+ * Send message to the server connection - server will forward it to the correct nodes
+ **/
+function sendMessage() {
+  //serialize message
+  var toSend = JSON.stringify(dataToSend);
+  //send message
+  conn.send(toSend);
+}
+
+/**
+ * Helper method that adds data to the message to send.
+ **/
+function addToMessage(key, value) {
+  dataToSend[key] = value; 
+}
+
+/**
+ * Process current received message.
+ * It terminates when they're no more messages being pushed down...
+ **/
+function processRound(message, round) {
+  if (round == 0) {
+    /* init. let's found the first */
+    how_many_leaders--;
+    addToMessage("ID", nodeId);
+  } else {
+    /* handling first leader */
+    if (message.hasOwnProperty("ID")) {
+      if (message.ID > nodeId) {
+        /* the other one won. forwarding... */
+        addToMessage("ID", message.ID);
+      } else if (message.ID == nodeId) {
+        orig_leader = true;
+        addLog("I am the leader!!!");
+      } /* else if the incoming is smaller, do nothing (effectively destroying
+         * it since we're not letting it pass through) */
+
+      /* Saving to the leaders array (as our original leader). It will always
+       * get overwritten with the bigger value until we reach the max */
+      leaders[0] = message.ID;
+    }
+    /* Handling multiple leaders (for the original leader)
+     * Sending a message with more leaders down the drain. Next leader is
+     * the one with the next bigger number and so on and so forth */
+    if (orig_leader == true && how_many_leaders > 0) {
+      var next = nodeId - how_many_leaders;
+      addToMessage("anotherLeader", next);
+      leaders.push(next);
+      how_many_leaders--;
+    }
+    /* Handling multiple leaders (for the rest) */
+    if (message.hasOwnProperty("anotherLeader")) {
+      /* any leaders pending?? */
+      if (how_many_leaders > 0) {
+        /* save and register */
+        leaders.push(message.anotherLeader);
+        if (message.anotherLeader == nodeId) {
+          addLog("I am a leader!!!");
+        }
+        /* forwarding */
+        addToMessage("anotherLeader", message.anotherLeader);
+        /* NOTE: we are not marking the 'other' leaders with the orig_leader var
+         * because they would try to send packets as well. The clients can
+         * search inside the leaders array to see if their id is present.
+         * We can solve the problem with another independent boolean variable */
+      }
+    }
+  }
+}
+
+/**
+ * Helper method that appends text to log container.
+ **/
+function addLog(log) {
+  var div = document.getElementById("logscontainer");
+  div.innerHTML = div.innerHTML + "<br>" + log;
+}
+
+</script>
+</head>
+<body>
+  <div id="logscontainer" style="width:500px;"></div>
+</body>
+</html>
