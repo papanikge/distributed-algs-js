@@ -86,7 +86,7 @@ var findNext = function findNextF() {
 
   var m = queue.length;
   for (var j = 1; j < m; j += 1) {
-    if (queue[j].lc > queue[m_index].lc) {
+    if (queue[j].lc < queue[m_index].lc) {
       m_index = j;
     }
   }
@@ -114,7 +114,8 @@ var check = function checkF() {
         addLog("Letting it go.");
         connection.send({msg: "release", id: my_id, lc: clock});
         release(my_id);
-      }, 2000);
+      }, 3000);
+      /* ~~~~ <-- resource is used for 3 seconds. Changeable if desired. */
     }
   }
   return 0;
